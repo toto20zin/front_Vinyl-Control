@@ -1,39 +1,30 @@
 'use strict';
 
-/* ==========================================================
-   Vinyl Control - script.js
-   Dados salvos no localStorage do navegador (sem servidor).
-   ========================================================== */
+const API_URL = 'http://localhost:3000';
 
-/* ---------- Configuração ---------- */
 const CHAVES = {
-    discos: 'vinylcontrol.discos',
-    movimentacoes: 'vinylcontrol.movimentacoes',
     sessao: 'vinylcontrol.sessao'
 };
 
-// Usuário de acesso (troque quando houver um back-end de verdade)
-const USUARIOS = [
-    { email: 'fbthomas@gmail.com', senha: '123456', nome: 'thomas' },
-    { email: 'gtpiffer@gmail.com', senha: '123456', nome: 'gaby' }
-];
 
-const DISCOS_INICIAIS = [
-    { id: 1, titulo: 'Abbey Road', artista: 'The Beatles', genero: 'Rock', custo: 85, venda: 179.9, qtd: 5, min: 2 },
-    { id: 2, titulo: 'Dark Side of the Moon', artista: 'Pink Floyd', genero: 'Rock Progressivo', custo: 90, venda: 189.9, qtd: 8, min: 3 },
-    { id: 3, titulo: 'Kind of Blue', artista: 'Miles Davis', genero: 'Jazz', custo: 75, venda: 159.9, qtd: 2, min: 3 }
-];
-
-/* ---------- Utilitários ---------- */
 const $ = (id) => document.getElementById(id);
 
-const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const moeda = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+});
 
 const normalizar = (texto) =>
-    String(texto).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    String(texto)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
 
 const porTitulo = (a, b) =>
-    a.titulo.localeCompare(b.titulo, 'pt-BR', { sensitivity: 'base' });
+    a.titulo.localeCompare(b.titulo, 'pt-BR', {
+        sensitivity: 'base'
+    });
 
 function hoje() {
     const d = new Date();
@@ -41,28 +32,16 @@ function hoje() {
     return d.toISOString().slice(0, 10);
 }
 
-function lerStorage(chave, padrao) {
-    try {
-        const bruto = localStorage.getItem(chave);
-        return bruto === null ? padrao : JSON.parse(bruto);
-    } catch {
-        return padrao;
-    }
-}
-
-function gravarStorage(chave, valor) {
-    try {
-        localStorage.setItem(chave, JSON.stringify(valor));
-    } catch {
-        /* armazenamento indisponível: os dados valem só nesta sessão */
-    }
-}
-
 function mostrarAlerta(elemento, tipo, mensagem) {
     if (!elemento) return;
+
     elemento.className = `alert ${tipo}`;
-    elemento.setAttribute('role', tipo === 'error' ? 'alert' : 'status');
+    elemento.setAttribute(
+        'role',
+        tipo === 'error' ? 'alert' : 'status'
+    );
     elemento.textContent = mensagem;
+    elemento.classList.remove('hidden');
 }
 
 function esconderAlerta(elemento) {
@@ -72,42 +51,54 @@ function esconderAlerta(elemento) {
 function criarCelula(texto, classe) {
     const td = document.createElement('td');
     td.textContent = texto;
+
     if (classe) td.className = classe;
+
     return td;
 }
 
-/* ---------- Estado ---------- */
-let discos = lerStorage(CHAVES.discos, DISCOS_INICIAIS);
-let movimentacoes = lerStorage(CHAVES.movimentacoes, []);
-
-function salvarDiscos() { gravarStorage(CHAVES.discos, discos); }
-function salvarMovimentacoes() { gravarStorage(CHAVES.movimentacoes, movimentacoes); }
-
-function proximoId(lista) {
-    return lista.reduce((maior, item) => Math.max(maior, item.id), 0) + 1;
-}
-
 function statusDoDisco(disco) {
-    if (disco.qtd === 0) return { texto: 'Sem estoque', classe: 'badge-zero' };
-    if (disco.qtd < disco.min) return { texto: 'Abaixo do mínimo', classe: 'badge-low' };
-    return { texto: 'Normal', classe: 'badge-ok' };
+    if (disco.qtd === 0) {
+        return {
+            texto: 'Sem estoque',
+            classe: 'badge-zero'
+        };
+    }
+
+    if (disco.qtd < disco.min) {
+        return {
+            texto: 'Abaixo do mínimo',
+            classe: 'badge-low'
+        };
+    }
+
+    return {
+        texto: 'Normal',
+        classe: 'badge-ok'
+    };
 }
 
-/* ---------- Navegação entre telas ---------- */
+
 function mostrarTela(id) {
     document.querySelectorAll('.screen').forEach((tela) => {
         tela.classList.toggle('active', tela.id === id);
     });
 
-    // O menu lateral só aparece quando o utilizador está logado (fora do login-screen)
-    document.body.classList.toggle('com-menu', id !== 'login-screen');
+    document.body.classList.toggle(
+        'com-menu',
+        id !== 'login-screen'
+    );
 
-    // Destaca a opção ativa no menu lateral
     document.querySelectorAll('.nav-item[data-tela]').forEach((item) => {
         const ativo = item.dataset.tela === id;
+
         item.classList.toggle('active', ativo);
-        if (ativo) item.setAttribute('aria-current', 'page');
-        else item.removeAttribute('aria-current');
+
+        if (ativo) {
+            item.setAttribute('aria-current', 'page');
+        } else {
+            item.removeAttribute('aria-current');
+        }
     });
 
     fecharMenuLateral();
@@ -117,122 +108,237 @@ function mostrarTela(id) {
 function fecharMenuLateral() {
     const sidebar = $('sidebar');
     const overlay = $('sidebar-overlay');
+
     if (sidebar) sidebar.classList.remove('open');
     if (overlay) overlay.classList.add('hidden');
 }
 
-function abrirCadastro() {
+async function abrirCadastro() {
     cancelarEdicao();
     esconderAlerta($('cadastro-alert'));
-    if ($('search-input')) $('search-input').value = '';
-    renderizarCadastro();
+
+    if ($('search-input')) {
+        $('search-input').value = '';
+    }
+
+    await renderizarCadastro();
     mostrarTela('cadastro-screen');
 }
 
-function abrirVendas() {
+async function abrirVendas() {
     esconderAlerta($('stock-warning-alert'));
-    esconderAlerta($('movimentacao-alert'));
-    if ($('movimentacao-form')) $('movimentacao-form').reset();
-    if ($('data-movimentacao')) $('data-movimentacao').value = hoje();
-    renderizarVendas();
+
+    const alertaMov = $('movimentacao-alert');
+
+    if (alertaMov) esconderAlerta(alertaMov);
+
+    if ($('movimentacao-form')) {
+        $('movimentacao-form').reset();
+    }
+
+    if ($('data-movimentacao')) {
+        $('data-movimentacao').value = hoje();
+    }
+
+    await renderizarVendas();
     mostrarTela('vendas-screen');
 }
 
-/* ==========================================================
-   1. LOGIN / LOGOUT
-   ========================================================== */
+
+const loginForm = $('login-form');
+
+if (loginForm) {
+    loginForm.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+
+        const emailInput = $('login-email').value.trim().toLowerCase();
+        const senhaInput = $('login-senha').value;
+
+        try {
+            const resposta = await fetch(`${API_URL}/usuario/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: emailInput,
+                    senha: senhaInput
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                mostrarAlerta(
+                    $('login-alert'),
+                    'error',
+                    dados.mensagem || 'E-mail ou senha incorretos.'
+                );
+
+                $('login-senha').value = '';
+                $('login-senha').focus();
+                return;
+            }
+
+            const usuario = dados.usuario;
+
+            if (!usuario || !usuario.id) {
+                mostrarAlerta(
+                    $('login-alert'),
+                    'error',
+                    'Não foi possível identificar o usuário.'
+                );
+                return;
+            }
+
+            esconderAlerta($('login-alert'));
+
+            localStorage.setItem(
+                CHAVES.sessao,
+                JSON.stringify(usuario)
+            );
+
+            loginForm.reset();
+            entrar(usuario);
+
+        } catch (erro) {
+            console.error('Erro ao realizar login:', erro);
+
+            mostrarAlerta(
+                $('login-alert'),
+                'error',
+                'Não foi possível conectar ao servidor.'
+            );
+        }
+    });
+}
+
 function entrar(usuario) {
-    if ($('user-display')) $('user-display').textContent = usuario.nome;
-    if ($('sidebar-user')) $('sidebar-user').textContent = usuario.nome;
+    if ($('user-display')) {
+        $('user-display').textContent = usuario.nome;
+    }
+
+    if ($('sidebar-user')) {
+        $('sidebar-user').textContent = usuario.nome;
+    }
+
     mostrarTela('main-screen');
 }
 
-if ($('login-form')) {
-    $('login-form').addEventListener('submit', (evento) => {
-        evento.preventDefault();
-
-        const email = $('login-email').value.trim().toLowerCase();
-        const senha = $('login-senha').value;
-        const usuario = USUARIOS.find((u) => u.email === email && u.senha === senha);
-
-        if (!usuario) {
-            $('login-alert').classList.remove('hidden');
-            $('login-senha').value = '';
-            $('login-senha').focus();
-            return;
-        }
-
-        esconderAlerta($('login-alert'));
-        gravarStorage(CHAVES.sessao, usuario.email);
-        $('login-form').reset();
-        entrar(usuario);
-    });
-}
-
 ['login-email', 'login-senha'].forEach((id) => {
-    if ($(id)) $(id).addEventListener('input', () => esconderAlerta($('login-alert')));
+    const el = $(id);
+
+    if (el) {
+        el.addEventListener('input', () => {
+            esconderAlerta($('login-alert'));
+        });
+    }
 });
 
-function efetuarLogout() {
-    try { localStorage.removeItem(CHAVES.sessao); } catch { /* ignora */ }
-    if ($('login-form')) $('login-form').reset();
+function sair() {
+    try {
+        localStorage.removeItem(CHAVES.sessao);
+    } catch {
+        // Ignora erros ao remover a sessão.
+    }
+
+    if (loginForm) loginForm.reset();
+
     esconderAlerta($('login-alert'));
     mostrarTela('login-screen');
-    if ($('login-email')) $('login-email').focus();
+
+    if ($('login-email')) {
+        $('login-email').focus();
+    }
 }
 
-if ($('btn-logout')) $('btn-logout').addEventListener('click', efetuarLogout);
-if ($('btn-logout-sidebar')) $('btn-logout-sidebar').addEventListener('click', efetuarLogout);
+if ($('btn-logout')) {
+    $('btn-logout').addEventListener('click', sair);
+}
 
-/* ==========================================================
-   2. MENU PRINCIPAL E MENU LATERAL
-   ========================================================== */
-if ($('card-cadastro')) $('card-cadastro').addEventListener('click', abrirCadastro);
-if ($('card-vendas')) $('card-vendas').addEventListener('click', abrirVendas);
+if ($('btn-logout-sidebar')) {
+    $('btn-logout-sidebar').addEventListener('click', sair);
+}
+
+
+if ($('card-cadastro')) {
+    $('card-cadastro').addEventListener('click', abrirCadastro);
+}
+
+if ($('card-vendas')) {
+    $('card-vendas').addEventListener('click', abrirVendas);
+}
 
 document.querySelectorAll('.btn-back').forEach((botao) => {
-    botao.addEventListener('click', () => mostrarTela('main-screen'));
+    botao.addEventListener('click', () => {
+        mostrarTela('main-screen');
+    });
 });
 
-// Clique nos itens do menu lateral
 document.querySelectorAll('.nav-item[data-tela]').forEach((item) => {
     item.addEventListener('click', () => {
         const tela = item.dataset.tela;
-        if (tela === 'cadastro-screen') abrirCadastro();
-        else if (tela === 'vendas-screen') abrirVendas();
-        else mostrarTela('main-screen');
+
+        if (tela === 'cadastro-screen') {
+            abrirCadastro();
+        } else if (tela === 'vendas-screen') {
+            abrirVendas();
+        } else {
+            mostrarTela('main-screen');
+        }
     });
 });
 
-// Menu responsivo em ecrãs pequenos
-if ($('btn-menu-toggle')) {
-    $('btn-menu-toggle').addEventListener('click', () => {
-        const sidebar = $('sidebar');
-        if (sidebar) sidebar.classList.toggle('open');
-        if ($('sidebar-overlay')) $('sidebar-overlay').classList.toggle('hidden');
-    });
+
+async function buscarDiscosDoBanco() {
+    try {
+        const resposta = await fetch(`${API_URL}/disco/listar`);
+
+        if (!resposta.ok) return [];
+
+        const dados = await resposta.json();
+
+        return dados.map((d) => ({
+            id: d.id,
+            titulo: d.titulo,
+            artista: d.artista,
+            genero: d.genero,
+            custo: parseFloat(d.preco_custo) || 0,
+            venda: parseFloat(d.preco_venda) || 0,
+            qtd: parseInt(d.quantidade, 10) || 0,
+            min: parseInt(d.estoque_min, 10) || 0
+        }));
+    } catch {
+        return [];
+    }
 }
 
-if ($('sidebar-overlay')) {
-    $('sidebar-overlay').addEventListener('click', fecharMenuLateral);
-}
-
-/* ==========================================================
-   3. CADASTRO DE DISCO
-   ========================================================== */
-function renderizarCadastro() {
-    const termo = normalizar($('search-input') ? $('search-input').value : '');
+async function renderizarCadastro() {
+    const termo = normalizar($('search-input')?.value || '');
     const tbody = $('tbody-cadastro');
+
     if (!tbody) return;
+
     tbody.replaceChildren();
 
+    const discos = await buscarDiscosDoBanco();
+
     const lista = discos
-        .filter((d) => normalizar(`${d.titulo} ${d.artista}`).includes(termo))
+        .filter((d) =>
+            normalizar(`${d.titulo} ${d.artista}`).includes(termo)
+        )
         .sort((a, b) => a.id - b.id);
 
     if (lista.length === 0) {
         const tr = document.createElement('tr');
-        const td = criarCelula(termo ? 'Nenhum disco encontrado para esta busca.' : 'Nenhum disco cadastrado ainda.', 'empty-row');
+
+        const td = criarCelula(
+            termo
+                ? 'Nenhum disco encontrado para esta busca.'
+                : 'Nenhum disco cadastrado ainda.',
+            'empty-row'
+        );
+
         td.colSpan = 9;
         tr.appendChild(td);
         tbody.appendChild(tr);
@@ -241,7 +347,10 @@ function renderizarCadastro() {
 
     lista.forEach((disco) => {
         const tr = document.createElement('tr');
-        if (disco.qtd < disco.min) tr.className = 'row-low';
+
+        if (disco.qtd < disco.min) {
+            tr.className = 'row-low';
+        }
 
         tr.append(
             criarCelula(disco.id),
@@ -256,10 +365,24 @@ function renderizarCadastro() {
 
         const acoes = document.createElement('td');
         acoes.className = 'actions-cell';
+
         acoes.append(
-            criarBotaoAcao('Editar', 'editar', disco.id, 'btn-secondary', `Editar ${disco.titulo}`),
-            criarBotaoAcao('Excluir', 'excluir', disco.id, 'btn-danger-outline', `Excluir ${disco.titulo}`)
+            criarBotaoAcao(
+                'Editar',
+                'editar',
+                disco.id,
+                'btn-secondary',
+                `Editar ${disco.titulo}`
+            ),
+            criarBotaoAcao(
+                'Excluir',
+                'excluir',
+                disco.id,
+                'btn-danger-outline',
+                `Excluir ${disco.titulo}`
+            )
         );
+
         tr.appendChild(acoes);
         tbody.appendChild(tr);
     });
@@ -267,113 +390,167 @@ function renderizarCadastro() {
 
 function criarBotaoAcao(texto, acao, id, classe, rotulo) {
     const botao = document.createElement('button');
+
     botao.type = 'button';
     botao.className = `btn btn-small ${classe}`;
     botao.textContent = texto;
     botao.dataset.acao = acao;
     botao.dataset.id = id;
     botao.setAttribute('aria-label', rotulo);
+
     return botao;
 }
 
-function lerFormularioDisco() {
-    return {
-        titulo: $('disco-titulo').value.trim(),
-        artista: $('disco-artista').value.trim(),
-        genero: $('disco-genero').value.trim(),
-        custo: parseFloat($('disco-preco-custo').value),
-        venda: parseFloat($('disco-preco-venda').value),
-        qtd: parseInt($('disco-qtd').value, 10),
-        min: parseInt($('disco-min').value, 10)
-    };
-}
+const discoForm = $('disco-form');
 
-function validarDisco(dados, idAtual) {
-    if (!dados.titulo || !dados.artista) {
-        return 'Informe o título e o artista.';
-    }
-    const numeros = [dados.custo, dados.venda, dados.qtd, dados.min];
-    if (numeros.some((n) => !Number.isFinite(n) || n < 0)) {
-        return 'Preços e quantidades devem ser números maiores ou iguais a zero.';
-    }
-    const duplicado = discos.some((d) =>
-        d.id !== idAtual &&
-        normalizar(d.titulo) === normalizar(dados.titulo) &&
-        normalizar(d.artista) === normalizar(dados.artista)
-    );
-    if (duplicado) {
-        return 'Este disco já está cadastrado para este artista.';
-    }
-    return '';
-}
-
-if ($('disco-form')) {
-    $('disco-form').addEventListener('submit', (evento) => {
+if (discoForm) {
+    discoForm.addEventListener('submit', async (evento) => {
         evento.preventDefault();
 
-        const idAtual = $('disco-id').value ? Number($('disco-id').value) : null;
-        const dados = lerFormularioDisco();
-        const erro = validarDisco(dados, idAtual);
+        const idAtual = $('disco-id').value
+            ? Number($('disco-id').value)
+            : null;
 
-        if (erro) {
-            mostrarAlerta($('cadastro-alert'), 'error', erro);
-            return;
+        const dadosParaEnviar = {
+            titulo: $('disco-titulo').value.trim(),
+            artista: $('disco-artista').value.trim(),
+            genero: $('disco-genero').value.trim(),
+            preco_custo: String($('disco-preco-custo').value),
+            preco_venda: String($('disco-preco-venda').value),
+            quantidade: String($('disco-qtd').value),
+            estoque_min: String($('disco-min').value)
+        };
+
+        try {
+            let resposta;
+
+            if (idAtual) {
+                resposta = await fetch(
+                    `${API_URL}/disco/atualizar/${idAtual}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(dadosParaEnviar)
+                    }
+                );
+            } else {
+                resposta = await fetch(
+                    `${API_URL}/disco/cadastrar`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(dadosParaEnviar)
+                    }
+                );
+            }
+
+            if (!resposta.ok) {
+                throw new Error('Erro ao salvar no servidor');
+            }
+
+            mostrarAlerta(
+                $('cadastro-alert'),
+                'success',
+                'Disco salvo com sucesso.'
+            );
+
+            cancelarEdicao();
+            renderizarCadastro();
+
+        } catch (erro) {
+            console.error('Erro ao salvar disco:', erro);
+
+            mostrarAlerta(
+                $('cadastro-alert'),
+                'error',
+                'Erro ao salvar o disco.'
+            );
         }
-
-        if (idAtual) {
-            const disco = discos.find((d) => d.id === idAtual);
-            Object.assign(disco, dados);
-            mostrarAlerta($('cadastro-alert'), 'success', `Disco "${dados.titulo}" atualizado com sucesso.`);
-        } else {
-            discos.push({ id: proximoId(discos), ...dados });
-            mostrarAlerta($('cadastro-alert'), 'success', `Disco "${dados.titulo}" cadastrado com sucesso.`);
-        }
-
-        salvarDiscos();
-        cancelarEdicao();
-        renderizarCadastro();
     });
 }
 
-function iniciarEdicao(id) {
+async function iniciarEdicao(id) {
+    const discos = await buscarDiscosDoBanco();
     const disco = discos.find((d) => d.id === id);
+
     if (!disco) return;
 
-    $('disco-id').value = disco.id;
-    $('disco-titulo').value = disco.titulo;
-    $('disco-artista').value = disco.artista;
-    $('disco-genero').value = disco.genero;
-    $('disco-preco-custo').value = disco.custo;
-    $('disco-preco-venda').value = disco.venda;
-    $('disco-qtd').value = disco.qtd;
-    $('disco-min').value = disco.min;
+    if ($('disco-id')) $('disco-id').value = disco.id;
+    if ($('disco-titulo')) $('disco-titulo').value = disco.titulo;
+    if ($('disco-artista')) $('disco-artista').value = disco.artista;
+    if ($('disco-genero')) $('disco-genero').value = disco.genero;
+    if ($('disco-preco-custo')) $('disco-preco-custo').value = disco.custo;
+    if ($('disco-preco-venda')) $('disco-preco-venda').value = disco.venda;
+    if ($('disco-qtd')) $('disco-qtd').value = disco.qtd;
+    if ($('disco-min')) $('disco-min').value = disco.min;
 
-    $('form-disco-title').textContent = `Editar Disco #${disco.id}`;
-    $('btn-cancelar-edicao').classList.remove('hidden');
+    if ($('form-disco-title')) {
+        $('form-disco-title').textContent = `Editar Disco #${disco.id}`;
+    }
+
+    if ($('btn-cancelar-edicao')) {
+        $('btn-cancelar-edicao').classList.remove('hidden');
+    }
+
     esconderAlerta($('cadastro-alert'));
-    $('disco-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    $('disco-titulo').focus({ preventScroll: true });
+
+    if ($('disco-form')) {
+        $('disco-form').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
 }
 
 function cancelarEdicao() {
     if ($('disco-form')) $('disco-form').reset();
     if ($('disco-id')) $('disco-id').value = '';
-    if ($('form-disco-title')) $('form-disco-title').textContent = 'Inserir Novo Disco';
-    if ($('btn-cancelar-edicao')) $('btn-cancelar-edicao').classList.add('hidden');
+
+    if ($('form-disco-title')) {
+        $('form-disco-title').textContent = 'Inserir Novo Disco';
+    }
+
+    if ($('btn-cancelar-edicao')) {
+        $('btn-cancelar-edicao').classList.add('hidden');
+    }
 }
 
-function excluirDisco(id) {
-    const disco = discos.find((d) => d.id === id);
-    if (!disco) return;
+async function excluirDisco(id) {
+    if (!window.confirm('Deseja excluir este disco?')) return;
 
-    if (!window.confirm(`Excluir o disco "${disco.titulo}" de ${disco.artista}?`)) return;
+    try {
+        const resposta = await fetch(
+            `${API_URL}/disco/excluir/${id}`,
+            {
+                method: 'DELETE'
+            }
+        );
 
-    discos = discos.filter((d) => d.id !== id);
-    salvarDiscos();
+        if (!resposta.ok) {
+            throw new Error('Erro ao excluir');
+        }
 
-    if (Number($('disco-id').value) === id) cancelarEdicao();
-    renderizarCadastro();
-    mostrarAlerta($('cadastro-alert'), 'success', `Disco "${disco.titulo}" excluído.`);
+        renderizarCadastro();
+
+        mostrarAlerta(
+            $('cadastro-alert'),
+            'success',
+            'Disco excluído com sucesso.'
+        );
+
+    } catch (erro) {
+        console.error('Erro ao excluir disco:', erro);
+
+        mostrarAlerta(
+            $('cadastro-alert'),
+            'error',
+            'Erro ao excluir o disco.'
+        );
+    }
 }
 
 if ($('btn-cancelar-edicao')) {
@@ -383,117 +560,158 @@ if ($('btn-cancelar-edicao')) {
     });
 }
 
-if ($('search-input')) $('search-input').addEventListener('input', renderizarCadastro);
+if ($('search-input')) {
+    $('search-input').addEventListener('input', renderizarCadastro);
+}
 
 if ($('tbody-cadastro')) {
     $('tbody-cadastro').addEventListener('click', (evento) => {
         const botao = evento.target.closest('button[data-acao]');
+
         if (!botao) return;
 
         const id = Number(botao.dataset.id);
-        if (botao.dataset.acao === 'editar') iniciarEdicao(id);
-        if (botao.dataset.acao === 'excluir') excluirDisco(id);
+
+        if (botao.dataset.acao === 'editar') {
+            iniciarEdicao(id);
+        }
+
+        if (botao.dataset.acao === 'excluir') {
+            excluirDisco(id);
+        }
     });
 }
 
-/* ==========================================================
-   4. GESTÃO DE ACERVO E VENDAS
-   ========================================================== */
-if ($('movimentacao-form')) {
-    const alertaMovimentacao = document.createElement('div');
+
+const movForm = $('movimentacao-form');
+let alertaMovimentacao = null;
+
+if (movForm) {
+    alertaMovimentacao = document.createElement('div');
     alertaMovimentacao.id = 'movimentacao-alert';
     alertaMovimentacao.className = 'alert hidden';
-    $('movimentacao-form').insertBefore(
+
+    movForm.insertBefore(
         alertaMovimentacao,
-        $('movimentacao-form').querySelector('button[type="submit"]')
+        movForm.querySelector('button[type="submit"]')
     );
 
-    $('movimentacao-form').addEventListener('submit', (evento) => {
+    movForm.addEventListener('submit', async (evento) => {
         evento.preventDefault();
 
         esconderAlerta($('stock-warning-alert'));
 
-        const disco = discos.find((d) => String(d.id) === $('select-disco').value);
-        const tipo = $('tipo-movimentacao').value;
-        const quantidade = parseInt($('qtd-movimentacao').value, 10);
-        const data = $('data-movimentacao').value;
-        const observacao = $('obs-movimentacao').value.trim();
+        const discoId = parseInt($('select-disco')?.value, 10);
+        const tipo = $('tipo-movimentacao')?.value.toUpperCase();
+        const quantidade = parseInt(
+            $('qtd-movimentacao')?.value || 0,
+            10
+        );
+        const data = $('data-movimentacao')?.value;
 
-        if (!disco) {
-            mostrarAlerta(alertaMovimentacao, 'error', 'Selecione um disco.');
-            return;
-        }
-        if (!Number.isInteger(quantidade) || quantidade < 1) {
-            mostrarAlerta(alertaMovimentacao, 'error', 'Informe uma quantidade válida (mínimo 1).');
-            return;
-        }
-        if (tipo === 'saida' && quantidade > disco.qtd) {
+        const sessaoStr = localStorage.getItem(CHAVES.sessao);
+        const usuarioLogado = sessaoStr
+            ? JSON.parse(sessaoStr)
+            : null;
+
+        if (!discoId) {
             mostrarAlerta(
                 alertaMovimentacao,
                 'error',
-                `Estoque insuficiente: "${disco.titulo}" tem apenas ${disco.qtd} unidade(s).`
+                'Selecione um disco.'
             );
             return;
         }
 
-        disco.qtd += tipo === 'entrada' ? quantidade : -quantidade;
-
-        movimentacoes.push({
-            id: proximoId(movimentacoes),
-            discoId: disco.id,
-            titulo: disco.titulo,
+        const dadosMovimentacao = {
             tipo,
+            data: data
+                ? new Date(data).toISOString()
+                : new Date().toISOString(),
             quantidade,
-            data,
-            observacao,
-            registradoEm: new Date().toISOString()
-        });
+            discoId,
+            usuarioId: usuarioLogado ? usuarioLogado.id : 1
+        };
 
-        salvarDiscos();
-        salvarMovimentacoes();
+        try {
+            const resposta = await fetch(
+                `${API_URL}/movimentacao/cadastrar`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dadosMovimentacao)
+                }
+            );
 
-        const acao = tipo === 'saida' ? 'Venda' : 'Reposição';
-        mostrarAlerta(
-            alertaMovimentacao,
-            'success',
-            `${acao} registrada: ${quantidade} unidade(s) de "${disco.titulo}". Estoque atual: ${disco.qtd}.`
-        );
+            if (!resposta.ok) {
+                throw new Error('Erro ao registrar movimentação');
+            }
 
-        if (tipo === 'saida' && disco.qtd < disco.min) {
-            mostrarAvisoEstoqueMinimo(disco);
+            mostrarAlerta(
+                alertaMovimentacao,
+                'success',
+                'Movimentação registrada com sucesso!'
+            );
+
+            movForm.reset();
+
+            if ($('data-movimentacao')) {
+                $('data-movimentacao').value = hoje();
+            }
+
+            renderizarVendas();
+
+        } catch (erro) {
+            console.error('Erro ao registrar movimentação:', erro);
+
+            mostrarAlerta(
+                alertaMovimentacao,
+                'error',
+                'Erro ao processar movimentação.'
+            );
         }
-
-        $('select-disco').value = '';
-        $('qtd-movimentacao').value = '';
-        $('obs-movimentacao').value = '';
-        renderizarVendas();
-    });
-
-    ['select-disco', 'tipo-movimentacao', 'qtd-movimentacao'].forEach((id) => {
-        if ($(id)) $(id).addEventListener('input', () => esconderAlerta(alertaMovimentacao));
     });
 }
 
-function renderizarVendas() {
+async function renderizarVendas() {
+    const discos = await buscarDiscosDoBanco();
     const ordenados = [...discos].sort(porTitulo);
 
     const select = $('select-disco');
+
     if (select) {
         const selecionado = select.value;
-        select.replaceChildren(new Option('-- Selecione um disco --', ''));
+
+        select.replaceChildren(
+            new Option('-- Selecione um disco --', '')
+        );
+
         ordenados.forEach((d) => {
-            select.add(new Option(`${d.titulo} (${d.artista})`, d.id));
+            select.add(
+                new Option(`${d.titulo} (${d.artista})`, d.id)
+            );
         });
-        if (ordenados.some((d) => String(d.id) === selecionado)) select.value = selecionado;
+
+        if (ordenados.some((d) => String(d.id) === selecionado)) {
+            select.value = selecionado;
+        }
     }
 
     const tbody = $('tbody-vendas-alfabetico');
+
     if (!tbody) return;
+
     tbody.replaceChildren();
 
     if (ordenados.length === 0) {
         const tr = document.createElement('tr');
-        const td = criarCelula('Nenhum disco cadastrado.', 'empty-row');
+        const td = criarCelula(
+            'Nenhum disco cadastrado.',
+            'empty-row'
+        );
+
         td.colSpan = 5;
         tr.appendChild(td);
         tbody.appendChild(tr);
@@ -503,12 +721,17 @@ function renderizarVendas() {
     ordenados.forEach((disco) => {
         const status = statusDoDisco(disco);
         const tr = document.createElement('tr');
-        if (disco.qtd < disco.min) tr.className = 'row-low';
+
+        if (disco.qtd < disco.min) {
+            tr.className = 'row-low';
+        }
 
         const celulaStatus = document.createElement('td');
         const selo = document.createElement('span');
+
         selo.className = `badge ${status.classe}`;
         selo.textContent = status.texto;
+
         celulaStatus.appendChild(selo);
 
         tr.append(
@@ -518,33 +741,31 @@ function renderizarVendas() {
             criarCelula(disco.min),
             celulaStatus
         );
+
         tbody.appendChild(tr);
     });
-}
-
-function mostrarAvisoEstoqueMinimo(disco) {
-    const aviso = $('stock-warning-alert');
-    if (!aviso) return;
-    const forte = document.createElement('strong');
-    forte.textContent = 'Atenção!';
-    aviso.replaceChildren(
-        forte,
-        ` O estoque de "${disco.titulo}" ficou abaixo do limite mínimo (${disco.qtd} em estoque, mínimo ${disco.min}).`
-    );
-    aviso.classList.remove('hidden');
 }
 
 /* ==========================================================
    5. INICIALIZAÇÃO DA SESSÃO
    ========================================================== */
-try {
-    if (localStorage.getItem(CHAVES.discos) === null) salvarDiscos();
-} catch { /* ignora */ }
 
-const emailSessao = lerStorage(CHAVES.sessao, null);
-const usuarioSessao = USUARIOS.find((u) => u.email === emailSessao);
-if (usuarioSessao) {
-    entrar(usuarioSessao);
+const sessaoSalva = localStorage.getItem(CHAVES.sessao);
+
+if (sessaoSalva) {
+    try {
+        const usuario = JSON.parse(sessaoSalva);
+
+        if (usuario && usuario.id) {
+            entrar(usuario);
+        } else {
+            localStorage.removeItem(CHAVES.sessao);
+            mostrarTela('login-screen');
+        }
+    } catch {
+        localStorage.removeItem(CHAVES.sessao);
+        mostrarTela('login-screen');
+    }
 } else {
     mostrarTela('login-screen');
 }
