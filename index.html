@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Vinyl Control: gestão de acervo e vendas de discos de vinil.">
+    <title>Vinyl Control - Gestão de Acervo e Vendas</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <!-- BOTÃO TOGGLE PARA MENU NO TELEMÓVEL -->
+    <button type="button" class="menu-toggle" id="btn-menu-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <svg class="icon" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- SOBREPOSIÇÃO (OVERLAY) PARA TELEMÓVEIS -->
+    <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+
+    <!-- ================= MENU LATERAL (SIDEBAR) ================= -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-disc"></div>
+            <span>Vinyl Control</span>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li>
+                <button type="button" class="nav-item" data-tela="main-screen">
+                    <span>Painel Principal</span>
+                </button>
+            </li>
+            <li>
+                <button type="button" class="nav-item" data-tela="cadastro-screen">
+                    <span>Cadastro de Disco</span>
+                </button>
+            </li>
+            <li>
+                <button type="button" class="nav-item" data-tela="vendas-screen">
+                    <span>Gestão de Acervo e Vendas</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                Usuário: <strong id="sidebar-user">thomas</strong>
+            </div>
+            <button type="button" class="nav-item nav-logout" id="btn-logout-sidebar">
+                <span>Sair (Logout)</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ================= 1. INTERFACE DE AUTENTICAÇÃO (LOGIN) ================= -->
+    <section id="login-screen" class="screen active">
+        <div class="card-container">
+            <h2>Vinyl Control</h2>
+            <p class="subtitle">Gestão de Acervo e Vendas</p>
+
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="login-email">E-mail</label>
+                    <input type="email" id="login-email" placeholder="Digite o seu e-mail" autocomplete="username" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="login-senha">Senha</label>
+                    <input type="password" id="login-senha" placeholder="Digite a sua senha" autocomplete="current-password" required>
+                </div>
+
+                <div id="login-alert" class="alert error hidden" role="alert">
+                    E-mail ou senha incorretos. Tente novamente!
+                </div>
+
+                <button type="submit" class="btn btn-primary">Entrar</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ================= 2. INTERFACE PRINCIPAL DO SISTEMA ================= -->
+    <section id="main-screen" class="screen">
+        <div class="dashboard-container">
+            <header class="dashboard-header">
+                <div class="user-info">
+                    <h1>Vinyl Control</h1>
+                    <p>Usuário conectado: <strong id="user-display">thomas</strong></p>
+                </div>
+                <button type="button" id="btn-logout" class="btn btn-danger-outline">Sair (Logout)</button>
+            </header>
+
+            <main class="dashboard-menu">
+                <h2>Menu Principal</h2>
+                <div class="menu-cards">
+                    <div class="card-option" id="card-cadastro">
+                        <h3>Cadastro de Disco</h3>
+                        <p>Adicione, liste, pesquise, edite ou exclua álbuns do acervo da loja.</p>
+                        <button type="button" class="btn btn-secondary">Acessar Cadastro</button>
+                    </div>
+
+                    <div class="card-option" id="card-vendas">
+                        <h3>Gestão de Acervo e Vendas</h3>
+                        <p>Consulte discos em ordem alfabética e registre movimentações de estoque (vendas e reposições).</p>
+                        <button type="button" class="btn btn-secondary">Acessar Gestão</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <!-- ================= 3. INTERFACE CADASTRO DE DISCO ================= -->
+    <section id="cadastro-screen" class="screen">
+        <div class="page-container">
+            <header class="page-header">
+                <h2>Cadastro e Manutenção de Discos</h2>
+                <button type="button" class="btn btn-secondary btn-back">Voltar ao Menu</button>
+            </header>
+
+            <div class="form-card">
+                <h3 id="form-disco-title">Inserir Novo Disco</h3>
+                <form id="disco-form">
+                    <input type="hidden" id="disco-id">
+
+                    <p class="required-note">Campos obrigatórios (*)</p>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="disco-titulo">Título do Disco *</label>
+                            <input type="text" id="disco-titulo" required placeholder="Ex: Dark Side of the Moon">
+                        </div>
+                        <div class="input-group">
+                            <label for="disco-artista">Artista / Banda *</label>
+                            <input type="text" id="disco-artista" required placeholder="Ex: Pink Floyd">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="disco-genero">Gênero</label>
+                            <input type="text" id="disco-genero" placeholder="Ex: Rock Progressivo">
+                        </div>
+                        <div class="input-group">
+                            <label for="disco-preco-custo">Preço de Custo (R$) *</label>
+                            <input type="number" id="disco-preco-custo" step="0.01" min="0" inputmode="decimal" required placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label for="disco-preco-venda">Preço de Venda (R$) *</label>
+                            <input type="number" id="disco-preco-venda" step="0.01" min="0" inputmode="decimal" required placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="disco-qtd">Quantidade em Estoque *</label>
+                            <input type="number" id="disco-qtd" min="0" inputmode="numeric" required placeholder="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="disco-min">Estoque Mínimo *</label>
+                            <input type="number" id="disco-min" min="0" inputmode="numeric" required placeholder="0">
+                        </div>
+                    </div>
+
+                    <div id="cadastro-alert" class="alert hidden" role="alert"></div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Salvar Disco</button>
+                        <button type="button" id="btn-cancelar-edicao" class="btn btn-secondary hidden">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Lista de Discos Cadastrados</h3>
+                    <div class="search-box">
+                        <input type="search" id="search-input" aria-label="Buscar disco por título ou artista" placeholder="Buscar por título ou artista...">
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="table-cadastro" aria-label="Lista de discos cadastrados">
+                        <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Título</th>
+                                <th scope="col">Artista</th>
+                                <th scope="col">Gênero</th>
+                                <th scope="col">Custo</th>
+                                <th scope="col">Venda</th>
+                                <th scope="col">Estoque</th>
+                                <th scope="col">Mín.</th>
+                                <th scope="col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-cadastro">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 4. INTERFACE GESTÃO DE ACERVO E VENDAS ================= -->
+    <section id="vendas-screen" class="screen">
+        <div class="page-container">
+            <header class="page-header">
+                <h2>Gestão de Acervo e Movimentação de Vendas</h2>
+                <button type="button" class="btn btn-secondary btn-back">Voltar ao Menu</button>
+            </header>
+
+            <div id="stock-warning-alert" class="alert warning hidden" role="status">
+                <strong>Atenção!</strong> O estoque deste disco ficou abaixo do limite mínimo configurado!
+            </div>
+
+            <div class="movimentacao-grid">
+                <div class="form-card">
+                    <h3>Registrar Movimentação de Estoque</h3>
+                    <form id="movimentacao-form">
+                        <div class="input-group">
+                            <label for="select-disco">Selecione o Disco (Ordem Alfabética) *</label>
+                            <select id="select-disco" required>
+                                <option value="">-- Selecione um disco --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="tipo-movimentacao">Tipo de Movimentação *</label>
+                                <select id="tipo-movimentacao" required>
+                                    <option value="saida">Venda (Saída)</option>
+                                    <option value="entrada">Reposição (Entrada)</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="qtd-movimentacao">Quantidade *</label>
+                                <input type="number" id="qtd-movimentacao" min="1" inputmode="numeric" required placeholder="1">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="data-movimentacao">Data da Movimentação *</label>
+                            <input type="date" id="data-movimentacao" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="obs-movimentacao">Observação</label>
+                            <input type="text" id="obs-movimentacao" placeholder="Ex: Venda no balcão / Compra fornecedor">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Registrar Movimentação</button>
+                    </form>
+                </div>
+
+                <div class="table-card">
+                    <h3>Catálogo Ordenado Alfabeticamente</h3>
+                    <div class="table-responsive">
+                        <table id="table-vendas" aria-label="Catálogo de discos em ordem alfabética">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Título</th>
+                                    <th scope="col">Artista</th>
+                                    <th scope="col">Qtd Atual</th>
+                                    <th scope="col">Mínimo</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-vendas-alfabetico">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>
